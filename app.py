@@ -522,16 +522,19 @@ def manage_menu():
 @app.route('/restaurant/order/<order_id>/update', methods=['POST'])
 def update_order_status(order_id):
     if 'user_id' not in session or session.get('user_type') != 'restaurant':
-        return jsonify({'success': False, 'message': 'Access denied'})
-
+        return jsonify({'success': False, 'message': 'Access denied'})    
     try:
         data = request.form
         new_status = data.get('status')
         
         # Validate status
-        valid_statuses = ['pending', 'preparing', 'ready', 'delivered', 'cancelled']
+        valid_statuses = ['pending', 'preparing', 'ready', 'awaiting_confirmation', 'delivered', 'cancelled']
         if new_status not in valid_statuses:
             return jsonify({'success': False, 'message': 'Invalid status'})
+            
+        # If restaurant marks as delivered, set to awaiting_confirmation instead
+        if new_status == 'delivered':
+            new_status = 'awaiting_confirmation'
 
         # Get restaurant data to verify ownership
         restaurant = restaurants.find_one({'user_id': ObjectId(session['user_id'])})
@@ -710,16 +713,19 @@ def get_order_details(order_id):
         if session.get('user_type') == 'restaurant':
             restaurant = restaurants.find_one({'user_id': ObjectId(session['user_id'])})
             if not restaurant or order['restaurant_id'] != restaurant['_id']:
-                return jsonify({'success': False, 'message': 'Order not found'})
-
-        # Format dates
+                return jsonify({'success': False, 'message': 'Order not found'})        # Format dates
         order['created_at'] = order['created_at'].strftime('%B %d, %Y %I:%M %p')
         order['updated_at'] = order['updated_at'].strftime('%B %d, %Y %I:%M %p')
+        if 'delivery_confirmed_at' in order:
+            order['delivery_confirmed_at'] = order['delivery_confirmed_at'].strftime('%B %d, %Y %I:%M %p')
         
         # Convert ObjectId to string for JSON serialization
         order['_id'] = str(order['_id'])
         order['user_id'] = str(order['user_id'])
         order['restaurant_id'] = str(order['restaurant_id'])
+        
+        # Add delivery confirmation needed flag
+        order['needs_confirmation'] = order['status'] == 'awaiting_confirmation' and str(order['user_id']) == session['user_id']
 
         return jsonify({
             'success': True,
@@ -766,6 +772,47 @@ def cancel_order(order_id):
     except Exception as e:
         print('Error cancelling order:', str(e))
         return jsonify({'success': False, 'message': f'Failed to cancel order: {str(e)}'})
+
+@app.route('/orders/<order_id>/confirm_delivery', methods=['POST'])
+def confirm_delivery(order_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Please login to confirm delivery'})
+
+    try:
+        # Get order details
+        order = orders.find_one({'_id': ObjectId(order_id)})
+        
+        if not order:
+            return jsonify({'success': False, 'message': 'Order not found'})
+
+        # Check if user has permission to confirm this order
+        if str(order['user_id']) != session['user_id']:
+            return jsonify({'success': False, 'message': 'You do not have permission to confirm this order'})
+
+        # Check if order is awaiting confirmation
+        if order['status'] != 'awaiting_confirmation':
+            return jsonify({'success': False, 'message': 'This order is not awaiting delivery confirmation'})
+
+        # Update order status to delivered
+        result = orders.update_one(
+            {'_id': ObjectId(order_id)},
+            {
+                '$set': {
+                    'status': 'delivered',
+                    'delivery_confirmed_at': datetime.datetime.now(),
+                    'updated_at': datetime.datetime.now()
+                }
+            }
+        )
+
+        if result.modified_count > 0:
+            return jsonify({'success': True, 'message': 'Delivery confirmed successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to confirm delivery'})
+
+    except Exception as e:
+        print('Error confirming delivery:', str(e))
+        return jsonify({'success': False, 'message': f'Failed to confirm delivery: {str(e)}'})
 
 # Error handlers
 @app.errorhandler(404)

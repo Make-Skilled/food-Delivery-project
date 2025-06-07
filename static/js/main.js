@@ -196,32 +196,31 @@ function initializeFormValidation() {
 }
 
 // Notification system
-function showNotification(message, type = 'info', duration = 3000) {
-    // Create notification element
+function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = `
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    `;
-
+    notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500' :
+        type === 'error' ? 'bg-red-500' :
+        'bg-blue-500'
+    } text-white`;
+    
     notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="flex items-center">
+            <span class="mr-2">
+                ${type === 'success' ? '<i class="fas fa-check-circle"></i>' :
+                  type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' :
+                  '<i class="fas fa-info-circle"></i>'}
+            </span>
+            <p>${message}</p>
+        </div>
     `;
-
-    // Add to page
+    
     document.body.appendChild(notification);
-
-    // Auto remove after duration
+    
+    // Remove notification after 3 seconds
     setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
-    }, duration);
+        notification.remove();
+    }, 3000);
 }
 
 // Search functionality
@@ -283,6 +282,96 @@ function clearSearchResults() {
         noResults.style.display = 'none';
     }
 }
+
+// Confirm delivery function
+window.confirmDelivery = function(orderId) {
+    if (!confirm('Are you sure you want to confirm the delivery?')) {
+        return;
+    }
+
+    fetch(`/orders/${orderId}/confirm_delivery`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Delivery confirmed successfully!', 'success');
+            // Update the UI to reflect the confirmed status
+            const orderElement = document.querySelector(`button[onclick="confirmDelivery('${orderId}')"]`)
+                .closest('li');
+            
+            if (orderElement) {
+                // Update status badge
+                const statusBadge = orderElement.querySelector('.rounded-full');
+                statusBadge.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800';
+                statusBadge.textContent = 'Delivered';
+                
+                // Remove confirm button
+                const confirmButton = orderElement.querySelector(`button[onclick="confirmDelivery('${orderId}')"]`);
+                confirmButton.remove();
+            }
+        } else {
+            showNotification(data.message || 'Failed to confirm delivery', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error confirming delivery:', error);
+        showNotification('Failed to confirm delivery. Please try again.', 'error');
+    });
+};
+
+// Order Management Functions
+window.updateOrderStatus = function(orderId, status) {
+    fetch(`/restaurant/order/${orderId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            'status': status
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message using notification system
+            showNotification(data.message, 'success');
+            
+            // Update the status badge
+            const statusBadge = document.querySelector(`select[onchange="updateOrderStatus('${orderId}', this.value)"]`)
+                .closest('li')
+                .querySelector('.rounded-full');
+            
+            // Update badge color and text
+            const displayStatus = status === 'delivered' ? 'awaiting_confirmation' : status;
+            statusBadge.className = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                displayStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                displayStatus === 'preparing' ? 'bg-blue-100 text-blue-800' :
+                displayStatus === 'ready' ? 'bg-purple-100 text-purple-800' :
+                displayStatus === 'awaiting_confirmation' ? 'bg-orange-100 text-orange-800' :
+                displayStatus === 'delivered' ? 'bg-green-100 text-green-800' :
+                'bg-red-100 text-red-800'
+            }`;
+            statusBadge.textContent = displayStatus === 'awaiting_confirmation' ? 'Awaiting Confirmation' : 
+                                    displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
+
+            // If status is awaiting_confirmation or cancelled, remove the select element
+            if (displayStatus === 'awaiting_confirmation' || status === 'cancelled') {
+                const selectContainer = document.querySelector(`select[onchange="updateOrderStatus('${orderId}', this.value)"]`).parentElement;
+                selectContainer.remove();
+            }
+        } else {
+            showNotification(data.message || 'Failed to update order status', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Failed to update order status', 'error');
+    });
+};
 
 // Utility functions
 function formatCurrency(amount) {

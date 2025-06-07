@@ -34,8 +34,7 @@
                                             <p class="text-sm font-medium text-blue-600 truncate">
                                                 Order #{{ order._id }}
                                             </p>
-                                            <div class="ml-2">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                            <div class="ml-2">                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                                     {% if order.status == 'pending' %}
                                                         bg-yellow-100 text-yellow-800
                                                     {% elif order.status == 'preparing' %}
@@ -44,6 +43,8 @@
                                                         bg-purple-100 text-purple-800
                                                     {% elif order.status == 'delivered' %}
                                                         bg-green-100 text-green-800
+                                                    {% elif order.status == 'awaiting_confirmation' %}
+                                                        bg-orange-100 text-orange-800
                                                     {% else %}
                                                         bg-red-100 text-red-800
                                                     {% endif %}">
@@ -86,18 +87,20 @@
                                            class="text-blue-600 hover:text-blue-900">
                                             <i class="fas fa-eye mr-1"></i>
                                             View Details
-                                        </button>
-                                        {% if user_type == 'restaurant' and order.status != 'delivered' and order.status != 'cancelled' %}
-                                            <div class="relative">
-                                                <select onchange="updateOrderStatus('{{ order._id }}', this.value)" 
+                                        </button>                                        {% if user_type == 'restaurant' and order.status != 'delivered' and order.status != 'cancelled' %}
+                                            <div class="relative">                                                <select onchange="updateOrderStatus('{{ order._id }}', this.value)" 
                                                         class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                                                     <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                                                     <option value="preparing" {% if order.status == 'preparing' %}selected{% endif %}>Preparing</option>
                                                     <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
-                                                    <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                                    <option value="delivered" {% if order.status == 'awaiting_confirmation' %}selected{% endif %}>Mark as Delivered</option>
                                                 </select>
                                             </div>
-                                        {% endif %}
+                                        {% elif user_type == 'customer' and order.status == 'awaiting_confirmation' %}                                        <button onclick="confirmDelivery('{{ order._id }}')"
+                                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                                <i class="fas fa-check mr-2"></i>
+                                                Confirm Delivery
+                                            </button>                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -155,6 +158,90 @@
 
 {% block extra_js %}
 <script>
+// Order status update function
+function updateOrderStatus(orderId, status) {
+    fetch(`/restaurant/order/${orderId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            'status': status
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success notification
+            showNotification(data.message || 'Order status updated successfully', 'success');
+            
+            // Get the status badge element
+            const statusBadge = document.querySelector(`select[onchange="updateOrderStatus('${orderId}', this.value)"]`)
+                .closest('li')
+                .querySelector('.rounded-full');
+            
+            // If status is delivered, we show awaiting_confirmation instead
+            const displayStatus = status === 'delivered' ? 'awaiting_confirmation' : status;
+            
+            // Update badge color and text
+            statusBadge.className = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                displayStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                displayStatus === 'preparing' ? 'bg-blue-100 text-blue-800' :
+                displayStatus === 'ready' ? 'bg-purple-100 text-purple-800' :
+                displayStatus === 'awaiting_confirmation' ? 'bg-orange-100 text-orange-800' :
+                displayStatus === 'delivered' ? 'bg-green-100 text-green-800' :
+                'bg-red-100 text-red-800'
+            }`;
+            
+            // Update the status text
+            const statusText = displayStatus === 'awaiting_confirmation' ? 'Awaiting Confirmation' :
+                             displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
+            statusBadge.textContent = statusText;
+
+            // If status is awaiting_confirmation or cancelled, remove the select element
+            if (displayStatus === 'awaiting_confirmation' || status === 'cancelled') {
+                const selectContainer = document.querySelector(`select[onchange="updateOrderStatus('${orderId}', this.value)"]`).parentElement;
+                selectContainer.remove();
+            }
+        } else {
+            // Show error notification
+            showNotification(data.message || 'Failed to update order status', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Failed to update order status', 'error');
+    });
+}
+
+// Notification helper function
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500' :
+        type === 'error' ? 'bg-red-500' :
+        'bg-blue-500'
+    } text-white`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <span class="mr-2">
+                ${type === 'success' ? '<i class="fas fa-check-circle"></i>' :
+                  type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' :
+                  '<i class="fas fa-info-circle"></i>'}
+            </span>
+            <p>${message}</p>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
 function viewOrderDetails(orderId) {
     // Show modal
     const modal = document.getElementById('orderDetailsModal');
@@ -179,11 +266,19 @@ function viewOrderDetails(orderId) {
                                 <div>
                                     <p class="text-gray-500">Order ID</p>
                                     <p class="font-medium">#${order._id}</p>
-                                </div>
-                                <div>
+                                </div>                                <div>
                                     <p class="text-gray-500">Status</p>
-                                    <p class="font-medium">${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</p>
+                                    <p class="font-medium">${order.status === 'awaiting_confirmation' ? 'Awaiting Confirmation' : order.status.charAt(0).toUpperCase() + order.status.slice(1)}</p>
                                 </div>
+                                ${order.status === 'awaiting_confirmation' && order.needs_confirmation ? `
+                                <div class="col-span-2 mt-2">
+                                    <button onclick="confirmDelivery('${order._id}')"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        <i class="fas fa-check mr-2"></i>
+                                        Confirm Delivery
+                                    </button>
+                                </div>
+                                ` : ''}
                                 <div>
                                     <p class="text-gray-500">Order Date</p>
                                     <p class="font-medium">${order.created_at}</p>
@@ -268,8 +363,7 @@ function viewOrderDetails(orderId) {
                 `;
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
+        .catch(error => {            console.error('Error:', error);
             document.getElementById('orderDetailsContent').innerHTML = `
                 <div class="text-center py-6">
                     <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
@@ -292,72 +386,5 @@ document.getElementById('orderDetailsModal').addEventListener('click', function(
     }
 });
 
-{% if user_type == 'restaurant' %}
-function updateOrderStatus(orderId, status) {
-    fetch(`/restaurant/order/${orderId}/update`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            'status': status
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show success message
-            const flashMessage = document.createElement('div');
-            flashMessage.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4';
-            flashMessage.innerHTML = `
-                <div class="mb-4 p-4 rounded-md bg-green-100 border border-green-400 text-green-700 relative">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium">${data.message}</p>
-                        </div>
-                        <div class="ml-auto pl-3">
-                            <button class="inline-flex text-green-400 hover:text-green-600 focus:outline-none" onclick="this.parentElement.parentElement.parentElement.remove()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.querySelector('nav').insertAdjacentElement('afterend', flashMessage);
-            
-            // Update the status badge
-            const statusBadge = document.querySelector(`select[onchange="updateOrderStatus('${orderId}', this.value)"]`)
-                .closest('li')
-                .querySelector('.rounded-full');
-            
-            // Update badge color and text
-            statusBadge.className = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                status === 'preparing' ? 'bg-blue-100 text-blue-800' :
-                status === 'ready' ? 'bg-purple-100 text-purple-800' :
-                status === 'delivered' ? 'bg-green-100 text-green-800' :
-                'bg-red-100 text-red-800'
-            }`;
-            statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-
-            // If status is delivered or cancelled, remove the select element
-            if (status === 'delivered' || status === 'cancelled') {
-                const selectContainer = document.querySelector(`select[onchange="updateOrderStatus('${orderId}', this.value)"]`).parentElement;
-                selectContainer.remove();
-            }
-        } else {
-            // Show error message
-            alert(data.message || 'Failed to update order status');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to update order status');
-    });
-}
-{% endif %}
 </script>
-{% endblock %} 
+{% endblock %}
