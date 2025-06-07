@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found - Food Delivery App{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div class="max-w-lg w-full text-center">
+        <!-- 404 Illustration -->
+        <div class="mb-8">
+            <div class="relative">
+                <!-- Large 404 Text -->
+                <h1 class="text-9xl font-bold text-gray-200 select-none">404</h1>
+
+                <!-- Food Icons Overlay -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="grid grid-cols-3 gap-4 text-4xl">
+                        <div class="animate-bounce" style="animation-delay: 0s;">🍕</div>
+                        <div class="animate-bounce" style="animation-delay: 0.2s;">🍔</div>
+                        <div class="animate-bounce" style="animation-delay: 0.4s;">🍜</div>
+                        <div class="animate-bounce" style="animation-delay: 0.6s;">🌮</div>
+                        <div class="animate-bounce" style="animation-delay: 0.8s;">🍱</div>
+                        <div class="animate-bounce" style="animation-delay: 1s;">🍰</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">
+                Oops! Page Not Found
+            </h2>
+            <p class="text-lg text-gray-600 mb-2">
+                Looks like this page went out for delivery and never came back!
+            </p>
+            <p class="text-gray-500">
+                The page you're looking for doesn't exist or has been moved.
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
+            <!-- Go Home Button -->
+            <a href="{{ url_for('home') }}"
+               class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors w-full sm:w-auto">
+                <i class="fas fa-home mr-2"></i>
+                Go Home
+            </a>
+
+            <!-- Browse Restaurants Button -->
+            <a href="{{ url_for('home') }}#restaurants"
+               class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors w-full sm:w-auto">
+                <i class="fas fa-utensils mr-2"></i>
+                Browse Restaurants
+            </a>
+        </div>
+
+        <!-- Search Section -->
+        <div class="mt-8 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-search mr-2 text-green-600"></i>
+                Looking for something specific?
+            </h3>
+
+            <form action="{{ url_for('search') }}" method="GET" class="space-y-4">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="text"
+                           name="q"
+                           placeholder="Search restaurants or cuisines..."
+                           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">
+
+                    <button type="submit"
+                            class="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        <i class="fas fa-search mr-2"></i>Search
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Popular Links -->
+        <div class="mt-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Popular Pages</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <a href="{{ url_for('home') }}"
+                   class="flex items-center p-3 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                    <i class="fas fa-home mr-2"></i>
+                    Home
+                </a>
+
+                <a href="{{ url_for('cart') }}"
+                   class="flex items-center p-3 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                    <i class="fas fa-shopping-cart mr-2"></i>
+                    Cart
+                </a>
+
+                <a href="{{ url_for('login') }}"
+                   class="flex items-center p-3 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Login
+                </a>
+
+                <a href="{{ url_for('register') }}"
+                   class="flex items-center p-3 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Sign Up
+                </a>
+
+                <a href="{{ url_for('contact') }}"
+                   class="flex items-center p-3 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                    <i class="fas fa-envelope mr-2"></i>
+                    Contact
+                </a>
+
+                <a href="{{ url_for('about') }}"
+                   class="flex items-center p-3 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    About
+                </a>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div class="flex items-center justify-center text-blue-800">
+                <i class="fas fa-question-circle mr-2"></i>
+                <span class="font-medium">Need Help?</span>
+            </div>
+            <p class="text-blue-700 text-sm mt-2">
+                If you think this is an error, please
+                <a href="{{ url_for('contact') }}" class="underline hover:text-blue-900">contact our support team</a>
+                and we'll help you find what you're looking for.
+            </p>
+        </div>
+
+        <!-- Footer Note -->
+        <div class="mt-8 text-xs text-gray-400">
+            <p>Error Code: 404 | Page Not Found</p>
+            <p class="mt-1">
+                <i class="fas fa-clock mr-1"></i>
+                <span id="current-time"></span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS for enhanced animations -->
+<style>
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* Staggered bounce animation */
+.animate-bounce {
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+        transform: translate3d(0,0,0);
+    }
+    40%, 43% {
+        transform: translate3d(0,-15px,0);
+    }
+    70% {
+        transform: translate3d(0,-7px,0);
+    }
+    90% {
+        transform: translate3d(0,-2px,0);
+    }
+}
+
+/* Hover effects */
+.hover-lift:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+}
+</style>
+
+<!-- JavaScript for enhanced interactivity -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set current time
+    const currentTimeElement = document.getElementById('current-time');
+    if (currentTimeElement) {
+        const now = new Date();
+        currentTimeElement.textContent = 'Page accessed at ' + now.toLocaleString();
+    }
+
+    // Add some interactive elements
+    const foodIcons = document.querySelectorAll('.animate-bounce');
+
+    foodIcons.forEach((icon, index) => {
+        icon.addEventListener('mouseenter', function() {
+            this.style.animationPlayState = 'paused';
+            this.style.transform = 'scale(1.2)';
+        });
+
+        icon.addEventListener('mouseleave', function() {
+            this.style.animationPlayState = 'running';
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Auto-focus search input
+    const searchInput = document.querySelector('input[name="q"]');
+    if (searchInput) {
+        setTimeout(() => {
+            searchInput.focus();
+        }, 1000);
+    }
+
+    // Add some fun interactions
+    let clickCount = 0;
+    const title404 = document.querySelector('h1');
+
+    title404.addEventListener('click', function() {
+        clickCount++;
+        if (clickCount === 3) {
+            this.style.color = '#10B981';
+            this.style.transform = 'rotate(360deg)';
+            this.style.transition = 'all 1s ease';
+
+            setTimeout(() => {
+                this.style.color = '#E5E7EB';
+                this.style.transform = 'rotate(0deg)';
+            }, 1000);
+
+            clickCount = 0;
+        }
+    });
+});
+</script>
+{% endblock %}
